@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: imagelite
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - imagelitenetwork
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "16200:80"
+    depends_on:
+      - db
+    networks:
+      - imagelitenetwork
+
+  sbootapp:
+    build:
+      dockerfile: Dockerfile
+      context: ./imageliteapi
+    container_name: imageliteapi
+    restart: on-failure
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    networks:
+      - imagelitenetwork
+    environment:
+      POSTGRES_HOST: db
+
+  nextapp:
+    build:
+      dockerfile: Dockerfile
+      context: ./imagelite
+    container_name: imageliteapp
+    restart: on-failure
+    depends_on:
+      - sbootapp
+    ports:
+      - "3000:3000"
+    networks:
+      - imagelitenetwork
+    expose:
+      - 3000
+    
+
+networks:
+  imagelitenetwork:
+    driver: bridge
+
+volumes:
+  db_data:
